@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: "Poppins", sans-serif;
+    background: #0a0a0a;
+    color: white;
+    position: relative;
+  }
+
+  #sparks, #fireStreaks, #smoke, #embers {
+    position: absolute; top: 0; left:0; width:100%; height:100%; pointer-events:none;
+  }
+
+  .spark { position:absolute; bottom:0; border-radius:50%; opacity:0.9; filter: drop-shadow(0 0 6px #f5f5f5);}
+  @keyframes sparkMove {0% { transform: translateY(0) scale(0.5); opacity:0.6; }50% { opacity:1; }100% { transform: translateY(-100vh) scale(1.5); opacity:0; }}
+
+  .streak { position:absolute; bottom:0; width:2px; border-radius:2px; opacity:0.7; }
+  @keyframes streakMove {0% { transform: translateX(0) translateY(0); opacity:0.5; }50% { opacity:1; }100% { transform: translateX(20px) translateY(-100vh); opacity:0; }}
+
+  .smoke { position:absolute; bottom:-50px; width:60px; height:60px; background: radial-gradient(circle, rgba(200,200,200,0.4) 0%, rgba(0,0,0,0) 70%); border-radius:50%; opacity:0.3; }
+  @keyframes smokeMove {0% { transform: translateY(0) scale(0.5); opacity:0.2; }50% { opacity:0.3; }100% { transform: translateY(-120vh) scale(2); opacity:0; }}
+
+  .ember { position:absolute; width:2px; height:2px; background: #f5f5f5; border-radius:50%; opacity:0.7; filter: blur(2px);}
+  @keyframes emberMove {0% { transform: translateY(0) scale(1); opacity:0.5; }50% { opacity:1; }100% { transform: translateY(-100vh) scale(1.5); opacity:0; }}
+
+  .player {
+    position: relative;
+    z-index: 5;
+    text-align: center;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+    border-radius: 25px;
+    padding: 40px 30px;
+    width: 360px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+    border: 3px solid #f5f5f5;
+    animation: neonBorderSmoke 3s linear infinite;
+  }
+
+  @keyframes neonBorderSmoke {
+    0% { border-color: #f5f5f5; box-shadow: 0 0 10px #f5f5f5; }
+    50% { border-color: #dcdcdc; box-shadow: 0 0 20px #dcdcdc; }
+    100% { border-color: #f5f5f5; box-shadow: 0 0 10px #f5f5f5; }
+  }
+
+  h1 { 
+    margin-bottom: 15px; 
+    font-size: 28px; 
+    letter-spacing:2px; 
+    font-family: 'Monoton', cursive; 
+    color: white;
+  }
+
+  .wave { display:flex; justify-content:center; align-items:flex-end; height:50px; margin:20px 0; gap:4px; }
+  .bar { width:6px; height:10px; background:#f5f5f5; border-radius:3px; animation:bounce 1s infinite ease-in-out; animation-play-state:paused; }
+  .bar:nth-child(1){animation-delay:0s;} .bar:nth-child(2){animation-delay:0.1s;}
+  .bar:nth-child(3){animation-delay:0.2s;} .bar:nth-child(4){animation-delay:0.3s;} .bar:nth-child(5){animation-delay:0.4s;}
+  @keyframes bounce{0%,100%{height:10px}50%{height:40px}}
+  .wave.active .bar{animation-play-state:running;}
+
+  .controls { display:flex; justify-content:space-around; align-items:center; margin-top:15px; }
+  .btn { background: linear-gradient(145deg,#f5f5f5,#eaeaea); border:none; width:60px; height:60px; border-radius:50%; cursor:pointer; font-size:24px; color:black; transition:0.3s; box-shadow:0 0 20px rgba(245,245,245,0.6);}
+  .btn:hover { transform:scale(1.1); box-shadow:0 0 30px rgba(245,245,245,0.9); }
+
+  .seekbar { width:100%; margin:15px 0; }
+  input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 5px;
+      background: rgba(245,245,245,0.3);
+      outline: none;
+      cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #f5f5f5;
+      cursor: pointer;
+  }
+
+  .heart { font-size:28px; cursor:pointer; transition:0.3s; color:white; }
+  .heart.liked{ color:#f5f5f5; transform:scale(1.3); text-shadow:0 0 20px #f5f5f5; }
+
+  .counter { font-size:14px; color:#f5f5f5; margin-left:5px; }
+  .view-counter { font-size:14px; color:white; margin-left:5px; }
+</style>
+</head>
+<body>
+  <div id="sparks"></div>
+  <div id="fireStreaks"></div>
+  <div id="smoke"></div>
+  <div id="embers"></div>
+
+  <div class="player">
+    <h1 id="songName">Byee Princess</h1>
+
+    <div class="wave" id="wave">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+
+    <div class="seekbar">
+      <input type="range" id="progress" value="0">
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="playBtn">▶</button>
+      <span class="heart" id="heart">♡</span><span class="counter" id="likeCount">0</span>
+      <span class="view-counter" id="viewCount"></span>
+    </div>
+
+    <audio id="audio">
+      <source src="https://raw.githubusercontent.com/krsnaaaaaa/songs/main/alvida.mpeg" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <script>
+    const sparksContainer = document.getElementById("sparks");
+    const streakContainer = document.getElementById("fireStreaks");
+    const smokeContainer = document.getElementById("smoke");
+    const emberContainer = document.getElementById("embers");
+    const wave = document.getElementById("wave");
+    const audio = document.getElementById("audio");
+    const playBtn = document.getElementById("playBtn");
+    const heart = document.getElementById("heart");
+    const likeCount = document.getElementById("likeCount");
+    const viewCount = document.getElementById("viewCount");
+    const progress = document.getElementById("progress");
+
+    let likes = 0;
+    let views = 0;
+    localStorage.setItem("songLikes", likes);
+    localStorage.setItem("songViews", views);
+
+    let liked = false;
+    likeCount.textContent = likes;
+    views++;
+    localStorage.setItem("songViews", views);
+    viewCount.textContent = "Views: " + views;
+
+    let animating = false;
+    function createSpark(){ const s=document.createElement("div"); s.className="spark"; s.style.left=Math.random()*100+"vw"; s.style.width=(2+Math.random()*4)+"px"; s.style.height=(6+Math.random()*12)+"px"; s.style.background="#f5f5f5"; s.style.animation=`sparkMove ${0.5+Math.random()}s linear forwards`; sparksContainer.appendChild(s); setTimeout(()=>s.remove(),2000);}
+    function createStreak(){ const e=document.createElement("div"); e.className="streak"; e.style.left=Math.random()*100+"vw"; e.style.height=(30+Math.random()*60)+"px"; e.style.background="#f5f5f5"; e.style.animation=`streakMove ${1+Math.random()*2}s linear forwards`; streakContainer.appendChild(e); setTimeout(()=>e.remove(),3000);}
+    function createSmoke(){ const s=document.createElement("div"); s.className="smoke"; s.style.left=Math.random()*100+"vw"; s.style.width=40+Math.random()*60+"px"; s.style.height=40+Math.random()*60+"px"; s.style.animation=`smokeMove ${4+Math.random()*3}s linear forwards`; smokeContainer.appendChild(s); setTimeout(()=>s.remove(),7000);}
+    function createEmber(){ const e=document.createElement("div"); e.className="ember"; e.style.left=Math.random()*100+"vw"; e.style.animation=`emberMove ${2+Math.random()*2}s linear forwards`; emberContainer.appendChild(e); setTimeout(()=>e.remove(),4000);}
+
+    function startAnimations(){
+      if(animating) return;
+      animating=true;
+      wave.classList.add("active");
+      setInterval(createSpark,80);
+      setInterval(createStreak,100);
+      setInterval(createSmoke,300);
+      setInterval(createEmber,150);
+    }
+
+    // ✅ FIXED PROGRESS BAR UPDATE
+    audio.addEventListener("timeupdate", () => {
+      if(audio.duration){
+        const percent = (audio.currentTime / audio.duration) * 100;
+        progress.value = percent;
+      }
+    });
+
+    // ✅ SEEK FUNCTIONALITY
+    progress.addEventListener("input", (e) => {
+      if(audio.duration){
+        const seekTime = (e.target.value / 100) * audio.duration;
+        audio.currentTime = seekTime;
+      }
+    });
+
+    // ✅ PLAY / PAUSE
+    playBtn.addEventListener("click", ()=>{
+      if(audio.paused){
+        audio.play();
+        playBtn.textContent="⏸";
+        startAnimations();
+      } else {
+        audio.pause();
+        playBtn.textContent="▶";
+        wave.classList.remove("active");
+      }
+    });
+
+    // ❤️ LIKE BUTTON
+    heart.addEventListener("click", ()=>{
+      heart.classList.toggle("liked");
+      liked = heart.classList.contains("liked");
+      heart.textContent = liked ? "❤️":"♡";
+      if(liked){ likes++; } else { likes--; if(likes<0) likes=0; }
+      likeCount.textContent=likes;
+      localStorage.setItem("songLikes", likes);
+    });
+
+    // 🎵 AUTOPLAY ON FIRST USER INTERACTION
+    function tryPlayAudio() {
+      if(audio.paused){
+        audio.play().then(()=>{
+          playBtn.textContent="⏸";
+          startAnimations();
+        }).catch(()=>{});
+      }
+      document.body.removeEventListener("click", tryPlayAudio);
+      document.body.removeEventListener("keydown", tryPlayAudio);
+    }
+    document.body.addEventListener("click", tryPlayAudio);
+    document.body.addEventListener("keydown", tryPlayAudio);
+  </script>
+</body>
+</html>
